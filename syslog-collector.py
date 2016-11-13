@@ -17,12 +17,11 @@ def read_arguments():
     :return:
     """
     parser = argparse.ArgumentParser(description='Syslog Collector')
-    parser.add_argument('format', type=str, choices=['busybox', 'rcf'], help="Format of the received syslog messages.")
     parser.add_argument('transport', type=str, choices=['udp', 'tcp'], help='Transport protocol used.')
     parser.add_argument('storage', type=str, choices=['file', 'database'], help='How to store incoming data.')
 
-    # search options
     parser.add_argument('--log', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Specify desired log level.")
+    parser.add_argument('--format', type=str, choices=['busybox', 'rfc'], help="Only try to parse the syslog messages with this format.")
 
     return parser.parse_args()
 

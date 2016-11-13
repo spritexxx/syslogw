@@ -1,4 +1,7 @@
 constantly==15.1.0
+enum34==1.1.6
 incremental==16.10.1
+pyparsing==2.1.10
+syslog-rfc5424-parser==0.1.1
 Twisted==16.5.0
 zope.interface==4.3.2
