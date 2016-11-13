@@ -9,16 +9,12 @@ __author__ = 'Simon Esprit'
 
 
 class SyslogUdp(protocol.DatagramProtocol):
+    def __init__(self, work_queue):
+        self.work_queue = work_queue
+
     """
     Simple protocol which receives syslog data over UDP.
     """
     def datagramReceived(self, data, addr):
         raw_data = parsers.RawSyslogData(data, addr[0])
-
-        # try and parse the message
-        message = parsers.RFC5424Parser.parse_message(raw_data.message)
-        if message is None:
-            message = parsers.BusyboxParser.parse_message(raw_data.message)
-
-        if message is not None:
-            logging.debug(json.dumps(message.as_dict()))
+        self.work_queue.put(raw_data)

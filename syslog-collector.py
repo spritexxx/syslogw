@@ -1,14 +1,19 @@
 import argparse
 import logging
+import Queue
+import json
+from threading import Thread
 
 from twisted.internet import reactor
 
 import servers
+import parsers
 
 __author__ = 'Simon Esprit'
 
 # Defaults
 DEFAULT_PORT = 5140
+DEFAULT_MAX_THREADS = 2
 
 
 def read_arguments():
@@ -26,6 +31,21 @@ def read_arguments():
     return parser.parse_args()
 
 
+def handle_new_messages(work_queue):
+    while True:
+        raw_data = work_queue.get()
+
+        # try and parse the message
+        message = parsers.RFC5424Parser.parse_message(raw_data.message)
+        if message is None:
+            message = parsers.BusyboxParser.parse_message(raw_data.message)
+
+        if message is not None:
+            logging.debug(json.dumps(message.as_dict()))
+
+        work_queue.task_done()
+
+
 def main():
 
     args = read_arguments()
@@ -38,9 +58,18 @@ def main():
 
         logging.basicConfig(level=numeric_level)
 
+    # Create Queue for handling incoming messages
+    work_queue = Queue.Queue()
+
+    # Threads that will parse & handle received messages
+    for i in range(DEFAULT_MAX_THREADS):
+        worker = Thread(target=handle_new_messages, args=(work_queue,))
+        worker.setDaemon(True)
+        worker.start()
+
     if args.transport == "udp":
         logging.info("Starting UPD server.")
-        reactor.listenUDP(DEFAULT_PORT, servers.SyslogUdp())
+        reactor.listenUDP(DEFAULT_PORT, servers.SyslogUdp(work_queue))
     elif args.transport == "tcp":
         logging.info("Starting TCP server.")
         Exception("TCP not supported yet!")
