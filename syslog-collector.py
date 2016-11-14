@@ -25,7 +25,6 @@ def read_arguments():
     """
     parser = argparse.ArgumentParser(description='Syslog Collector')
     parser.add_argument('transport', type=str, choices=['udp', 'tcp'], help='Transport protocol used.')
-    parser.add_argument('storage', type=str, choices=['file', 'database'], help='How to store incoming data.')
 
     parser.add_argument('--log', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Specify desired log level.")
     parser.add_argument('--format', type=str, choices=['busybox', 'rfc'], help="Only try to parse the syslog messages with this format.")
@@ -44,6 +43,9 @@ def handle_new_messages(work_queue, db_con):
 
         if message is None:
             logging.warning("unable to parse received message")
+
+        # log message content only
+        logging.debug("got message: %s" % message.as_dict()['msg'])
 
         # let's do something with the data
         db_con.store_message_data(parsers.SyslogData(message, raw_data.origin_ip, raw_data.timestamp))
