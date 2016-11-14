@@ -2,6 +2,7 @@
   <dictionary name="spritexxx1">
     <words>
       <w>busybox</w>
+      <w>mongo</w>
     </words>
   </dictionary>
 </component>

@@ -16,5 +16,4 @@ class SyslogUdp(protocol.DatagramProtocol):
     Simple protocol which receives syslog data over UDP.
     """
     def datagramReceived(self, data, addr):
-        raw_data = parsers.RawSyslogData(data, addr[0])
-        self.work_queue.put(raw_data)
+        self.work_queue.put(parsers.RawSyslogData(data, addr[0]))

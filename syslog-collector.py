@@ -8,12 +8,14 @@ from twisted.internet import reactor
 
 import servers
 import parsers
+import mongodb
 
 __author__ = 'Simon Esprit'
 
 # Defaults
 DEFAULT_PORT = 5140
 DEFAULT_MAX_THREADS = 2
+DEFAULT_COLLECTION = "messages"
 
 
 def read_arguments():
@@ -31,7 +33,7 @@ def read_arguments():
     return parser.parse_args()
 
 
-def handle_new_messages(work_queue):
+def handle_new_messages(work_queue, db_con):
     while True:
         raw_data = work_queue.get()
 
@@ -40,8 +42,11 @@ def handle_new_messages(work_queue):
         if message is None:
             message = parsers.BusyboxParser.parse_message(raw_data.message)
 
-        if message is not None:
-            logging.debug(json.dumps(message.as_dict()))
+        if message is None:
+            logging.warning("unable to parse received message")
+
+        # let's do something with the data
+        db_con.store_message_data(parsers.SyslogData(message, raw_data.origin_ip, raw_data.timestamp))
 
         work_queue.task_done()
 
@@ -61,9 +66,15 @@ def main():
     # Create Queue for handling incoming messages
     work_queue = Queue.Queue()
 
+    # Mongo DB connection that will be shared between the threads
+    db_con = mongodb.MongoDBConnection(DEFAULT_COLLECTION)
+    if not db_con.connect():
+        print("Fatal Error: Could not connect to mongod")
+        return False
+
     # Threads that will parse & handle received messages
     for i in range(DEFAULT_MAX_THREADS):
-        worker = Thread(target=handle_new_messages, args=(work_queue,))
+        worker = Thread(target=handle_new_messages, args=(work_queue,db_con))
         worker.setDaemon(True)
         worker.start()
 
