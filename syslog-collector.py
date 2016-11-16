@@ -2,13 +2,17 @@ import argparse
 import logging
 import Queue
 import json
+import sys
+
 from threading import Thread
 
 from twisted.internet import reactor
+from twisted.python import log
 
 import servers
 import parsers
 import mongodb
+import viewer
 
 __author__ = 'Simon Esprit'
 
@@ -32,7 +36,14 @@ def read_arguments():
     return parser.parse_args()
 
 
-def handle_new_messages(work_queue, db_con):
+def handle_new_messages(work_queue, factory, database=None):
+    """
+    Worker thread that handles incoming syslog messages.
+    :param work_queue: Queue containing raw received messages.
+    :param database: Connection to the database where messages can be stored.
+    :param factory: Connection to web socket clients.
+    :return: Nothing at all.
+    """
     while True:
         raw_data = work_queue.get()
 
@@ -44,16 +55,29 @@ def handle_new_messages(work_queue, db_con):
         if message is None:
             logging.warning("unable to parse received message")
 
-        # log message content only
-        logging.debug("got message: %s" % message.as_dict()['msg'])
+        # add extra fields to message
+        json_message = message.as_dict()
+        json_message['rx_timestamp'] = raw_data.timestamp
+        json_message['origin_ip'] = raw_data.origin_ip
 
-        # let's do something with the data
-        db_con.store_message_data(parsers.SyslogData(message, raw_data.origin_ip, raw_data.timestamp))
+        # also inform all clients about new data
+        # this call returns immediately thanks to twisted
+        reactor.callFromThread(factory.updateClients, json_message)
+
+        # store in database
+        if database:
+            # create copy as database tends to modify the dict
+            database.store_message_data(dict(json_message))
+        else:
+            # no database, log to console
+            print(json.dumps(json_message))
 
         work_queue.task_done()
 
 
 def main():
+
+    log.startLogging(sys.stdout)
 
     args = read_arguments()
 
@@ -65,18 +89,22 @@ def main():
 
         logging.basicConfig(level=numeric_level)
 
-    # Create Queue for handling incoming messages
+    # mongo db connection that will be shared between the threads
+    database = mongodb.MongoDBConnection(DEFAULT_COLLECTION)
+    if not database.connect():
+        logging.warning("Could not connect to mongod, not saving logs in DB!")
+        database = None
+
+    # create factory for viewer websockets
+    factory = viewer.SyslogViewerFactory(u"ws://127.0.0.1:9191")
+    reactor.listenTCP(9191, factory)
+
+    # create Queue for handling incoming messages
     work_queue = Queue.Queue()
 
-    # Mongo DB connection that will be shared between the threads
-    db_con = mongodb.MongoDBConnection(DEFAULT_COLLECTION)
-    if not db_con.connect():
-        print("Fatal Error: Could not connect to mongod")
-        return False
-
-    # Threads that will parse & handle received messages
+    # threads that will parse & handle received messages
     for i in range(DEFAULT_MAX_THREADS):
-        worker = Thread(target=handle_new_messages, args=(work_queue,db_con))
+        worker = Thread(target=handle_new_messages, args=(work_queue, factory, database))
         worker.setDaemon(True)
         worker.start()
 

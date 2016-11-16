@@ -23,22 +23,6 @@ class RawSyslogData(object):
         self.timestamp = time.time() * 1000
 
 
-class SyslogData(object):
-    """
-    Holds a parsed SyslogMessage along with extra info.
-    """
-    def __init__(self, message, origin_ip, timestamp):
-        """
-        Create new SyslogData container object.
-        :param message: a SyslogMessage
-        :param origin_ip: origin IP address (String)
-        :param timestamp: ms since epoch when this message was received (not parsed!)
-        """
-        self.message = message
-        self.origin_ip = origin_ip
-        self.timestamp = timestamp
-
-
 class Parser(object):
     __metaclass__ = abc.ABCMeta
 

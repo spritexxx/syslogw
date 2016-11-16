@@ -1,9 +1,6 @@
-import logging
-import json
-
 import parsers
 
-from twisted.internet import reactor, protocol
+from twisted.internet import protocol
 
 __author__ = 'Simon Esprit'
 
