@@ -3,6 +3,7 @@
     <words>
       <w>busybox</w>
       <w>mongo</w>
+      <w>websocket</w>
     </words>
   </dictionary>
 </component>
