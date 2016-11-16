@@ -7,7 +7,6 @@ import sys
 from threading import Thread
 
 from twisted.internet import reactor
-from twisted.python import log
 
 import servers
 import parsers
@@ -32,6 +31,7 @@ def read_arguments():
 
     parser.add_argument('--log', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Specify desired log level.")
     parser.add_argument('--format', type=str, choices=['busybox', 'rfc'], help="Only try to parse the syslog messages with this format.")
+    parser.add_argument('--database', type=str, choices=['y', 'n'], help="Store logs in a database or not.", default='y')
 
     return parser.parse_args()
 
@@ -76,9 +76,6 @@ def handle_new_messages(work_queue, factory, database=None):
 
 
 def main():
-
-    log.startLogging(sys.stdout)
-
     args = read_arguments()
 
     if args.log is not None:
@@ -89,10 +86,16 @@ def main():
 
         logging.basicConfig(level=numeric_level)
 
-    # mongo db connection that will be shared between the threads
-    database = mongodb.MongoDBConnection(DEFAULT_COLLECTION)
-    if not database.connect():
-        logging.warning("Could not connect to mongod, not saving logs in DB!")
+    if args.database == "y":
+        # mongo db connection that will be shared between the threads
+        database = mongodb.MongoDBConnection(DEFAULT_COLLECTION)
+        if not database.connect():
+            logging.warning("Could not connect to mongod, not saving logs in DB!")
+            database = None
+        else:
+            logging.info("Connected to database.")
+    else:
+        logging.info("Not storing logs in a database.")
         database = None
 
     # create factory for viewer websockets
