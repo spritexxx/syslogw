@@ -42,3 +42,6 @@ crashlytics-build.properties
 fabric.properties
 
 *.pyc
+
+# dont want to have my dictionaries in git
+.idea/dictionaries
