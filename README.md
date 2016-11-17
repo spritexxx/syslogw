@@ -11,6 +11,13 @@ Requirements
 * pip install -r requirements.txt
 * mongodb (tested on v3.2.10)
 
+Note:
+I had SSL related issues on my macbook which made pip unable to install twisted.
+To fix this I had to do the following:
+* pip install certifi
+
+From then on everything was smooth sailing!
+
 How to use
 -----------
 1. Make sure mongodb is installed and running.
@@ -30,6 +37,12 @@ However, you can always view them using mongo:
 $ mongo
 >> use syslog
 >> db.messages.show()
+
+If your logger does not allow you to specify a server and port you can always 
+update the /etc/syslog.conf file so that it logs certain messages to a server.
+
+This line forwards all messages to a server for example:
+*.* 			@127.0.0.1:5140
 
 Web app
 --------
