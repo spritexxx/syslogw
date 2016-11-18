@@ -1,48 +1,31 @@
-import logging
-import json
+from flask import Flask
 
-from autobahn.twisted import WebSocketServerProtocol, WebSocketServerFactory
-from twisted.internet import reactor
+from twisted.web import server, static
+from twisted.web.wsgi import WSGIResource
+
 
 __author__ = 'Simon Esprit'
 
+client_app = Flask(__name__)
 
-class SyslogViewerProtocol(WebSocketServerProtocol):
+
+@client_app.route('/')
+def index():
+    # TODO put a real implementation using templates etc...
+    return '<h1>Syslog Viewer</h1>'
+
+
+@client_app.route('/websocket.html')
+def websocket_test():
     """
-    Websocket protocol that is used to push new incoming syslog messages
-    to the viewer client.
+    This is really just an example of how to server a static page
+    that can also be used for testing the websocket communication.
     """
-    def onConnect(self, request):
-        logging.debug("Client connecting {0}".format(request.peer))
-
-    def onOpen(self):
-        # register yourself in so that you can get updates
-        self.factory.clients.append(self)
-
-    def onMessage(self, payload, isBinary):
-        if isBinary:
-            logging.debug("RX (binary)")
-        else:
-            logging.debug("RX - {0}".format(payload.decode('utf8')))
-
-    def onClose(self, wasClean, code, reason):
-        # it can be that we are somehow not in anymore
-        if self in self.factory.clients:
-            self.factory.clients.remove(self)
-        logging.debug("Client connection closed, reason: {0}".format(reason))
-
-    def newMessage(self, message):
-        payload = json.dumps(message, ensure_ascii=False).encode('utf8')
-        # simply push message to client
-        self.sendMessage(payload)
+    return client_app.send_static_file('websocket.html')
 
 
-class SyslogViewerFactory(WebSocketServerFactory):
-    protocol = SyslogViewerProtocol
-    clients = []
+def create_viewer(reactor, port):
+    wsgi_resource = WSGIResource(reactor, reactor.getThreadPool(), client_app)
+    site = server.Site(wsgi_resource)
+    reactor.listenTCP(port, site, interface="0.0.0.0")
 
-    # called by worker threads in case they have new data for the clients
-    def updateClients(self, message):
-        for proto in self.clients:
-            # call in thread so that a client cannot block us!
-            reactor.callInThread(proto.newMessage, message)

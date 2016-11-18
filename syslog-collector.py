@@ -2,21 +2,21 @@ import argparse
 import logging
 import Queue
 import json
-import sys
 
 from threading import Thread
 
 from twisted.internet import reactor
 
+import viewer
 import servers
 import parsers
 import mongodb
-import viewer
 
 __author__ = 'Simon Esprit'
 
 # Defaults
 DEFAULT_PORT = 5140
+DEFAULT_VIEWER_PORT = 8080
 DEFAULT_MAX_THREADS = 2
 DEFAULT_COLLECTION = "messages"
 
@@ -54,6 +54,8 @@ def handle_new_messages(work_queue, factory, database=None):
 
         if message is None:
             logging.warning("unable to parse received message")
+            work_queue.task_done()
+            continue
 
         # add extra fields to message
         json_message = message.as_dict()
@@ -99,8 +101,8 @@ def main():
         database = None
 
     # create factory for viewer websockets
-    factory = viewer.SyslogViewerFactory(u"ws://127.0.0.1:9191")
-    reactor.listenTCP(9191, factory)
+    factory = servers.SyslogViewerFactory(u"ws://127.0.0.1:9494")
+    reactor.listenTCP(9494, factory)
 
     # create Queue for handling incoming messages
     work_queue = Queue.Queue()
@@ -119,6 +121,9 @@ def main():
         Exception("TCP not supported yet!")
 
     print("Syslog Collector Server listening on port %d (%s)" % (DEFAULT_PORT, args.transport.upper()))
+
+    # create a viewer
+    viewer.create_viewer(reactor, DEFAULT_VIEWER_PORT)
 
     reactor.run()
     print("Syslog Collector Server stopped.")
