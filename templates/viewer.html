@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+
+<!-- TODO use async? -->
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+<script type="text/javascript" src="static/viewer.js"></script>
+{% endblock %}
+
+{% block content %}
+{{ super() }}
+<div class="container" ng-app="app", ng-controller="MessagesController">
+<div class="panel panel-default">
+        <div class="panel-heading">
+            Showing received syslog messages
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Priority</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+</div>
+</div>
+{% endblock %}
