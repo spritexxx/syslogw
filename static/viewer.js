@@ -1,5 +1,11 @@
 var app = angular.module('app', []);
 
+// change delimiter so that we don't clash with Flask
+app.config(['$interpolateProvider', function($interpolateProvider) {
+  $interpolateProvider.startSymbol('{a');
+  $interpolateProvider.endSymbol('a}');
+}]);
+
 function init() {
     window.init()
 }
@@ -7,6 +13,8 @@ function init() {
 app.controller('MessagesController', ['$scope', '$window', function ($scope, $window){
     $scope.socket = null;
     $scope.socket_is_open = false;
+    $scope.messages = [];
+    $scope.messages.push("connecting to syslogc");
 
     var init = function() {
 	    socket = new WebSocket("ws://127.0.0.1:9494");
@@ -14,6 +22,10 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 	    socket.onopen = function() {
 		    console.log("Connected!");
 		    isopen = true;
+
+		    // example if the message were a string
+		    $scope.messages.push("connected to syslogc");
+		    $scope.$apply();
 	    }
 
 	    socket.onmessage = function(e) {
