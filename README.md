@@ -1,5 +1,5 @@
-Syslog Collector
-=================
+Syslogw (syslog web)
+=====================
 This is a syslog collector (server) which parses and stores incoming syslog messages in a database and makes them available
 through a web application.
 
@@ -22,7 +22,7 @@ How to use
 -----------
 1. Make sure mongodb is installed and running.
 2. Start the server:
-    python syslog-collector.py udp
+    python syslogw.py udp
         optionally specify --log=DEBUG if you want to see incoming messages on the console
 
 Note:
@@ -46,5 +46,5 @@ This line forwards all messages to a server for example:
 
 Web app
 --------
-The web app to view the logged messages is a work in progress.
-For now you can find them in syslog database (mongodb) under the messages collections.
+To view the web app, fire up a browser and go to:
+localhost:8080
