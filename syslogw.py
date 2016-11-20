@@ -47,13 +47,10 @@ def handle_new_messages(work_queue, factory, database=None):
     while True:
         raw_data = work_queue.get()
 
-        # try and parse the message
-        message = parsers.RFC5424Parser.parse_message(raw_data.message)
-        if message is None:
-            message = parsers.BusyboxParser.parse_message(raw_data.message)
+        message = raw_data.parse_message(parsers.OSXParser)
 
         if message is None:
-            logging.warning("unable to parse received message")
+            # TODO notify client about unparsed messages?
             work_queue.task_done()
             continue
 

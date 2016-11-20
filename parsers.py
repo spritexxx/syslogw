@@ -22,6 +22,27 @@ class RawSyslogData(object):
         self.origin_ip = str(origin_ip)
         self.timestamp = time.time() * 1000
 
+    def parse_message(self, parser=None):
+        """
+        Try to parse raw data to a SyslogMessage
+        :param parser: force usage of a specific Parser.
+        :return: SyslogMessage or None in case it could not be parsed.
+        """
+        if parser is not None:
+            return parser.parse_message(self.message)
+        else:
+            message = RFC5424Parser.parse_message(self.message)
+            if message is not None:
+                return message
+
+            # try all known NonRFC5424 parsers
+            for subclass in NonRFC5424Parser.__subclasses__():
+                message = subclass.parse_message(self.message)
+                if message is not None:
+                    return message
+
+            return None
+
 
 class Parser(object):
     __metaclass__ = abc.ABCMeta
@@ -46,12 +67,11 @@ class RFC5424Parser(Parser):
         return message
 
 
-class BusyboxParser(Parser):
+class NonRFC5424Parser(Parser):
     """
-    Parses syslog messages sent by syslogd as found in Busybox.
-    This version is often found in embedded devices and is NOT RFC5424 compliant.
+    Internal classes for use by non-RFC parser.
+    Contains class definitions and helper functions that can be used by implementers.
     """
-
     class SyslogFacility(IntEnum):
         kern = 0
         user = 1
@@ -94,6 +114,16 @@ class BusyboxParser(Parser):
         return int(toks[0])
 
     @staticmethod
+    def parse_message(self, data):
+        pass
+
+
+class BusyboxParser(NonRFC5424Parser):
+    """
+    Parses syslog messages sent by syslogd as found in Busybox.
+    This version is often found in embedded devices and is NOT RFC5424 compliant.
+    """
+    @staticmethod
     def _pyparse_message(string):
         """
         Parse message string using pyparse.
@@ -103,7 +133,7 @@ class BusyboxParser(Parser):
         colon = Literal(":")
         SP = Suppress(White(ws=' ', min=1, max=1))
 
-        pri = Combine(Suppress(Literal("<")) + Word(nums, min=1, max=3) + Suppress(Literal(">"))).setParseAction(BusyboxParser._toInt)
+        pri = Combine(Suppress(Literal("<")) + Word(nums, min=1, max=3) + Suppress(Literal(">"))).setParseAction(NonRFC5424Parser._toInt)
 
         rfc3164_date = Word(alphas, min=3, max=3) + SP + Word(nums, min=2, max=2)
         rfc3164_time = Combine(Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2))
@@ -128,7 +158,8 @@ class BusyboxParser(Parser):
         try:
             groups = BusyboxParser._pyparse_message(data)
         except ParseException as e:
-            logging.warning("failed to parse syslog message: " + str(e))
+            logging.debug("failed to parse syslog message: " + str(e))
+            logging.debug(data)
             return None
 
         header = groups['header']
@@ -148,11 +179,92 @@ class BusyboxParser(Parser):
 
         facility = pri >> 3
         try:
-            facility = BusyboxParser.SyslogFacility(facility)
+            facility = NonRFC5424Parser.SyslogFacility(facility)
         except Exception:
-            facility = BusyboxParser.SyslogFacility.unknown
+            facility = NonRFC5424Parser.SyslogFacility.unknown
 
         severity = pri & 7
-        severity = BusyboxParser.SyslogSeverity(severity)
+        severity = NonRFC5424Parser.SyslogSeverity(severity)
 
         return SyslogMessage(severity=severity, facility=facility, timestamp=timestamp, appname=appname, msg=message)
+
+
+class OSXParser(NonRFC5424Parser):
+    """
+    Parses syslog messages sent by syslogd as found in OSX (Apple).
+    Note that the default format is expected.
+    """
+    @staticmethod
+    def _pyparse_message(string):
+        """
+        Parse message string using pyparse.
+        """
+        # pyparse variables
+        dash = Literal("-")
+        colon = Literal(":")
+        SP = Suppress(White(ws=' ', min=1, max=1))
+
+        pri = Combine(Suppress(Literal("<")) + Word(nums, min=1, max=3) + Suppress(Literal(">"))).setParseAction(NonRFC5424Parser._toInt)
+
+        rfc3164_date = Word(alphas, min=3, max=3) + SP + Word(nums, min=2, max=2)
+        rfc3164_time = Combine(Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2))
+
+        # hostname from originator - not sure how long this can be!
+        hostname = Word(printables, min=1, max=255)
+
+        # TODO must support apps which contain spaces on OSX
+        appname = Word(alphanums, min=1, max=48)
+        procid = Combine(Suppress(Literal("[")) + Word(alphanums, min=1, max=128) + Suppress(Literal("]"))).setParseAction(NonRFC5424Parser._toInt)
+
+        header = Group(
+            pri.setResultsName('pri') +
+            rfc3164_date.setResultsName('date') + SP +
+            rfc3164_time.setResultsName('time') + SP +
+            hostname.setResultsName('host') + SP +
+            appname.setResultsName('appname') +
+            procid.setResultsName('procid') + colon
+        )
+
+        message = Combine(restOfLine + lineEnd)
+        syslog_message = header.setResultsName('header') + Optional(SP + message.setResultsName('message'))
+
+        return syslog_message.parseString(string)
+
+    @staticmethod
+    def parse_message(data):
+        try:
+            groups = OSXParser._pyparse_message(data)
+        except ParseException as e:
+            logging.debug("failed to parse syslog message: " + str(e))
+            logging.debug(data)
+            return None
+
+        header = groups['header']
+
+        time = header['time']
+        date = header['date']
+        timestamp = "%s-%sT%s.00Z" % (date[0], date[1], time)
+
+        host = header['host']
+        appname = header['appname']
+        procid = header['procid']
+
+        if 'message' in groups:
+            message = groups['message']
+        else:
+            message = None
+
+        pri = int(header['pri'])
+
+        facility = pri >> 3
+        try:
+            facility = NonRFC5424Parser.SyslogFacility(facility)
+        except Exception:
+            facility = NonRFC5424Parser.SyslogFacility.unknown
+
+        severity = pri & 7
+        severity = NonRFC5424Parser.SyslogSeverity(severity)
+
+        return SyslogMessage(severity=severity, facility=facility, timestamp=timestamp,
+                             hostname=host, appname=appname, procid=procid,
+                             msg=message)
