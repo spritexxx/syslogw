@@ -31,6 +31,7 @@ class RawSyslogData(object):
             parsed = parser.parse_message(self.message)
             if not parsed:
                 logging.warn("%s could not parse: %s" % (parser.__name__, self.message))
+            return parsed
         else:
             message = RFC5424Parser.parse_message(self.message)
             if message is not None:
@@ -156,7 +157,7 @@ class BusyboxParser(NonRFC5424Parser):
         rfc3164_time = Combine(Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2))
 
         # not clear what this represents...
-        appname = Word(alphanums, min=1, max=48)
+        appname = Word(alphanums + "_-[].", min=1, max=48)
 
         header = Group(
            pri.setResultsName('pri') +
@@ -233,7 +234,7 @@ class OSXParser(NonRFC5424Parser):
         hostname = Word(printables, min=1, max=255)
 
         # TODO must support apps which contain spaces on OSX
-        appname = Word(alphanums, min=1, max=48)
+        appname = Word(alphanums + "_-.:", min=1, max=48)
         procid = Combine(Suppress(Literal("[")) + Word(alphanums, min=1, max=128) + Suppress(Literal("]"))).setParseAction(NonRFC5424Parser._toInt)
 
         header = Group(
