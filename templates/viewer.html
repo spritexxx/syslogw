@@ -21,12 +21,14 @@
             <thead>
                 <tr>
                     <th>Priority</th>
+                    <th>App</th>
                     <th>Message</th>
                 </tr>
             </thead>
             <tbody>
             <tr ng-repeat='message in messages'>
                 <td>{a message.severity a}</td>
+                <td>{a message.appname a}</td>
                 <td>{a message.msg a}</td>
             </tr>
             </tbody>
