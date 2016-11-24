@@ -69,7 +69,7 @@ def handle_new_messages(work_queue, factory, database=None):
             database.store_message_data(dict(json_message))
         else:
             # no database, log to console
-            print(json.dumps(json_message))
+            print(raw_data.message)
 
         work_queue.task_done()
 

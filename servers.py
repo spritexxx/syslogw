@@ -48,9 +48,12 @@ class SyslogViewerProtocol(WebSocketServerProtocol):
         logging.debug("Client connection closed, reason: {0}".format(reason))
 
     def newMessage(self, message):
-        payload = json.dumps(message, ensure_ascii=False).encode('utf8')
-        # simply push message to client
-        self.sendMessage(payload)
+        try:
+            payload = json.dumps(message, ensure_ascii=False).encode('utf8')
+            # simply push message to client
+            self.sendMessage(payload)
+        except Exception as e:
+            logging.warn("exception occurred: " + str(e))
 
 
 class SyslogViewerFactory(WebSocketServerFactory):
