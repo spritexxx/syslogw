@@ -47,7 +47,7 @@ def handle_new_messages(work_queue, factory, database=None):
     while True:
         raw_data = work_queue.get()
 
-        message = raw_data.parse_message(parsers.OSXParser)
+        message = raw_data.parse_message()
 
         if message is None:
             # TODO notify client about unparsed messages?
