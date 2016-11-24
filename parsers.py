@@ -28,7 +28,9 @@ class RawSyslogData(object):
         :return: SyslogMessage or None in case it could not be parsed.
         """
         if parser is not None:
-            return parser.parse_message(self.message)
+            parsed = parser.parse_message(self.message)
+            if not parsed:
+                logging.warn("%s could not parse: %s" % (parser.__name__, self.message))
         else:
             message = RFC5424Parser.parse_message(self.message)
             if message is not None:
@@ -50,18 +52,26 @@ class Parser(object):
     def parse_message(self, data):
         """Parse message with class specific format """
 
+    @abc.abstractmethod
+    def name(self):
+        """Name by which this parser can be selected from command line"""
+
 
 class RFC5424Parser(Parser):
+    @staticmethod
+    def name():
+        return "rfc5424"
+
     """
     Parses messages that conform to RFC5424 specification.
     """
-    @staticmethod
-    def parse_message(data):
+    @classmethod
+    def parse_message(cls, data):
         try:
             message = SyslogMessage.parse(data)
         except ParseError as e:
             message = None
-            logging.warning("Could not parse message: " + str(e))
+            logging.warning("%s - %s" % (cls.__name__, str(e)))
 
         return message
 
@@ -109,11 +119,15 @@ class NonRFC5424Parser(Parser):
         debug = 7
 
     @staticmethod
+    def name():
+        pass
+
+    @staticmethod
     def _toInt(s, loc, toks):
         return int(toks[0])
 
-    @staticmethod
-    def parse_message(self, data):
+    @classmethod
+    def parse_message(cls, data):
         pass
 
 
@@ -122,6 +136,10 @@ class BusyboxParser(NonRFC5424Parser):
     Parses syslog messages sent by syslogd as found in Busybox.
     This version is often found in embedded devices and is NOT RFC5424 compliant.
     """
+    @staticmethod
+    def name():
+        return "busybox"
+
     @staticmethod
     def _pyparse_message(string):
         """
@@ -152,13 +170,12 @@ class BusyboxParser(NonRFC5424Parser):
 
         return syslog_message.parseString(string)
 
-    @staticmethod
-    def parse_message(data):
+    @classmethod
+    def parse_message(cls, data):
         try:
             groups = BusyboxParser._pyparse_message(data)
         except ParseException as e:
-            logging.debug("failed to parse syslog message: " + str(e))
-            logging.debug(data)
+            logging.debug("%s - %s" % (cls.__name__, str(e)))
             return None
 
         header = groups['header']
@@ -193,6 +210,10 @@ class OSXParser(NonRFC5424Parser):
     Parses syslog messages sent by syslogd as found in OSX (Apple).
     Note that the default format is expected.
     """
+    @staticmethod
+    def name():
+        return "macosx"
+
     @staticmethod
     def _pyparse_message(string):
         """
@@ -229,13 +250,12 @@ class OSXParser(NonRFC5424Parser):
 
         return syslog_message.parseString(string)
 
-    @staticmethod
-    def parse_message(data):
+    @classmethod
+    def parse_message(cls, data):
         try:
             groups = OSXParser._pyparse_message(data)
         except ParseException as e:
-            logging.debug("failed to parse syslog message: " + str(e))
-            logging.debug(data)
+            logging.debug("%s - %s" % (cls.__name__, str(e)))
             return None
 
         header = groups['header']

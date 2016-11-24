@@ -30,24 +30,55 @@ def read_arguments():
     parser.add_argument('transport', type=str, choices=['udp', 'tcp'], help='Transport protocol used.')
 
     parser.add_argument('--log', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Specify desired log level.")
-    parser.add_argument('--format', type=str, choices=['busybox', 'rfc'], help="Only try to parse the syslog messages with this format.")
+    parser.add_argument('--parser', type=str, choices=available_parsers(), help="Only try to parse the syslog messages with this parser.")
     parser.add_argument('--database', type=str, choices=['y', 'n'], help="Store logs in a database or not.", default='y')
 
     return parser.parse_args()
 
 
-def handle_new_messages(work_queue, factory, database=None):
+def available_parsers():
+    list = []
+    for parser in parsers.Parser.__subclasses__():
+        for subclass in parser.__subclasses__():
+            if subclass.name():
+                list.append(subclass.name())
+
+        if parser.name():
+            list.append(parser.name())
+
+    return list
+
+
+def get_parser_by_name(name):
+    """
+    Lookup a parser by its name.
+    :param name: string name of the parser
+    :return: parsers class if found or None if not found
+    """
+    for parser in parsers.Parser.__subclasses__():
+        for subclass in parser.__subclasses__():
+            if subclass.name() == name:
+                return subclass
+
+        if parser.name() == name:
+            return parser
+
+    return None
+
+
+def handle_new_messages(work_queue, factory, database=None, parser=None):
     """
     Worker thread that handles incoming syslog messages.
     :param work_queue: Queue containing raw received messages.
     :param database: Connection to the database where messages can be stored.
     :param factory: Connection to web socket clients.
+    :param parser: Parser class to be used for parsing the messages.
     :return: Nothing at all.
     """
     while True:
         raw_data = work_queue.get()
 
-        message = raw_data.parse_message()
+        message = raw_data.parse_message(parser)
 
         if message is None:
             # TODO notify client about unparsed messages?
@@ -97,6 +128,16 @@ def main():
         logging.info("Not storing logs in a database.")
         database = None
 
+    if args.parser:
+        parser = get_parser_by_name(args.parser)
+        if not parser:
+            print("Error: did not find specified parser: %s" % args.parser)
+            return 1
+        else:
+            logging.info("Using parser class %s" % parser.__name__)
+    else:
+        parser = None
+
     # create factory for viewer websockets
     factory = servers.SyslogViewerFactory(u"ws://127.0.0.1:9494")
     reactor.listenTCP(9494, factory)
@@ -106,7 +147,7 @@ def main():
 
     # threads that will parse & handle received messages
     for i in range(DEFAULT_MAX_THREADS):
-        worker = Thread(target=handle_new_messages, args=(work_queue, factory, database))
+        worker = Thread(target=handle_new_messages, args=(work_queue, factory, database, parser))
         worker.setDaemon(True)
         worker.start()
 
