@@ -9,7 +9,7 @@ Requirements
 -------------
 * python 2.7 
 * pip install -r requirements.txt
-* mongodb (tested on v3.2.10)
+* optionally: mongodb (tested on v3.2.10) if you specify --database=y
 
 Note:
 I had SSL related issues on my macbook which made pip unable to install twisted.
@@ -20,7 +20,7 @@ From then on everything was smooth sailing!
 
 How to use
 -----------
-1. Make sure mongodb is installed and running.
+1. Optional: Make sure mongodb is installed and running.
 2. Start the server:
     python syslogw.py udp
         optionally specify --log=DEBUG if you want to see incoming messages on the console
@@ -30,7 +30,7 @@ Currently the server listens on port 5140 (UDP) only and TCP connections are not
 
 To test
 -------
-$  logger --server 10.0.0.1 --port 5140 my awesome message
+$  logger --server [your_ip] --port 5140 my awesome message
 
 If you have debug enabled (--log=DEBUG) you should see this on the console.
 However, you can always view them using mongo:
@@ -48,3 +48,8 @@ Web app
 --------
 To view the web app, fire up a browser and go to:
 localhost:8080
+
+Extended options
+----------------
+This will list all available options:
+	python syslogw.py --help

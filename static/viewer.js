@@ -48,7 +48,7 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 		    $scope.socket = null;
 		    $scope.socket_is_open = false;
 
-		    $scope.messages.push({severity: "notice", msg: "Disconnected from syslogc"});
+		    $scope.messages.push({severity: "err", msg: "Disconnected from syslogc"});
 		    $scope.$apply();
 	    }
 
