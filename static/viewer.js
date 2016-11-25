@@ -65,9 +65,9 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 			    $scope.messages.push(message);
 			    $scope.$apply();
 
-			    // scroll to bottom
-			    // TODO make cleaner implementation where the table header and controls stay on top...
-			    window.scrollTo(0, document.body.scrollHeight);
+			    // scroll to bottom of table
+			    var objDiv = document.getElementById("viewer");
+                objDiv.scrollTop = objDiv.scrollHeight;
 	    }
 	}
 

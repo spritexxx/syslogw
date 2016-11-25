@@ -6,17 +6,16 @@
 <!-- TODO use async? -->
 <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
 <script type="text/javascript" src="static/viewer.js"></script>
-<!-- TODO will be used at some point -->
-<!-- <link rel="stylesheet" type="text/css" href="static/viewer.css"> -->
+<link rel="stylesheet" type="text/css" href="static/viewer.css">
 {% endblock %}
 
 {% block content %}
 {{ super() }}
-<div class="container" ng-app="app", ng-controller="MessagesController">
-<div class="panel panel-default">
-    <div class="panel-heading">
-        Listing received syslog messages
+<div class="container box">
+    <div class="header row">
+        <h3>Syslogw</h3>
     </div>
+    <div id="viewer" class="container content row" ng-app="app", ng-controller="MessagesController">
         <table class="table">
             <thead>
                 <tr>
@@ -33,6 +32,6 @@
             </tr>
             </tbody>
         </table>
-</div>
+    </div>
 </div>
 {% endblock %}
