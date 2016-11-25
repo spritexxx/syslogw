@@ -13,7 +13,12 @@
 {{ super() }}
 <div class="container box">
     <div class="header row">
-        <h3>Syslogw</h3>
+        <div>
+            <h3>Syslogw <small>Web Viewer</small></h3>
+        </div>
+        <div id="controller">
+            <button type="button" class="btn btn-primary btn-warning">Pause</button>
+        </div>
     </div>
     <div id="viewer" class="container content row" ng-app="app", ng-controller="MessagesController">
         <table class="table">
