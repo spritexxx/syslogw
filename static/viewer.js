@@ -23,7 +23,7 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
     $scope.paused_messages = [];
 
     var init = function() {
-	    socket = new WebSocket("ws://127.0.0.1:9494");
+	    socket = new WebSocket("ws://"+ server_ip +":9494");
 
 	    socket.onopen = function() {
 		    $scope.socketIsOpen = true;

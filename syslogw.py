@@ -1,7 +1,6 @@
 import argparse
 import logging
 import Queue
-import json
 
 from threading import Thread
 
@@ -32,6 +31,7 @@ def read_arguments():
     parser.add_argument('--log', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Specify desired log level.")
     parser.add_argument('--parser', type=str, choices=available_parsers(), help="Only try to parse the syslog messages with this parser.")
     parser.add_argument('--database', type=str, choices=['y', 'n'], help="Store logs in a database or not.", default='y')
+    parser.add_argument('--serverip', type=str, help="specify server ip address (e.g IP of the server hosting this app)")
 
     return parser.parse_args()
 
@@ -161,7 +161,7 @@ def main():
     print("Syslog Collector Server listening on port %d (%s)" % (DEFAULT_PORT, args.transport.upper()))
 
     # create a viewer
-    viewer.create_viewer(reactor, DEFAULT_VIEWER_PORT)
+    viewer.create_viewer(reactor, DEFAULT_VIEWER_PORT, args.serverip)
 
     reactor.run()
     print("Syslog Collector Server stopped.")

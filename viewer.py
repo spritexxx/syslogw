@@ -1,3 +1,7 @@
+import socket
+import logging
+
+
 from flask import Flask, render_template
 from flask_bootstrap import Bootstrap
 from flask import request
@@ -21,7 +25,7 @@ def log_request():
 
 @app.route('/')
 def index():
-    return render_template('viewer.html')
+    return render_template('viewer.html', server_ip=app.config['SERVER_IP'])
 
 
 @app.route('/websocket.html')
@@ -33,7 +37,17 @@ def websocket_test():
     return app.send_static_file('websocket.html')
 
 
-def create_viewer(reactor, port):
+def create_viewer(reactor, port, server_ip=None):
+    # figure out our IP in case it is not specified
+    if not server_ip:
+        serverip = socket.gethostbyname(socket.gethostname())
+    else:
+        serverip = server_ip
+
+    logging.debug("using server ip: " + serverip)
+
+    app.config['SERVER_IP'] = serverip
+
     # add extension to the app
     bootstrap = Bootstrap(app)
 
