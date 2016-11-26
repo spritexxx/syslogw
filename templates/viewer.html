@@ -11,16 +11,18 @@
 
 {% block content %}
 {{ super() }}
-<div class="container box">
+<div class="container box" ng-app="app", ng-controller="MessagesController">
     <div class="header row">
         <div>
             <h3>Syslogw <small>Web Viewer</small></h3>
         </div>
         <div id="controller">
-            <button type="button" class="btn btn-primary btn-warning">Pause</button>
+            <button type="button" class="btn btn-primary btn-warning" ng-click="onClear()">Clear</button>
+            <button type="button" class="btn btn-primary btn-warning" ng-click="onPause()" ng-hide="isPaused">Pause</button>
+            <button type="button" class="btn btn-primary btn-warning" ng-click="onResume()" ng-show="isPaused">Resume</button>
         </div>
     </div>
-    <div id="viewer" class="container content row" ng-app="app", ng-controller="MessagesController">
+    <div id="viewer" class="container content row">
         <table class="table">
             <thead>
                 <tr>

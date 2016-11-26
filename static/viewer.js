@@ -16,14 +16,17 @@ function isEmpty(str) {
 
 app.controller('MessagesController', ['$scope', '$window', function ($scope, $window){
     $scope.socket = null;
-    $scope.socket_is_open = false;
+    $scope.socketIsOpen = false;
+    $scope.isPaused = false;
     $scope.messages = [];
+    // this buffer will hold messages while the app is paused
+    $scope.paused_messages = [];
 
     var init = function() {
 	    socket = new WebSocket("ws://127.0.0.1:9494");
 
 	    socket.onopen = function() {
-		    $scope.socket_is_open = true;
+		    $scope.socketIsOpen = true;
 		    $scope.socket = socket
 
 		    // example if the message were a string
@@ -46,7 +49,7 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 
 	    socket.onclose = function(e) {
 		    $scope.socket = null;
-		    $scope.socket_is_open = false;
+		    $scope.socketIsOpen = false;
 
 		    $scope.messages.push({severity: "err", msg: "Disconnected from syslogc"});
 		    $scope.$apply();
@@ -62,14 +65,43 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 			        return;
 			    }
 
-			    $scope.messages.push(message);
-			    $scope.$apply();
+                /* if we are paused we simply keep messages in a separate buffer */
+                if ($scope.isPaused) {
+                    $scope.paused_messages.push(message);
+                }
+                else {
+                    $scope.messages.push(message);
+			        $scope.$apply();
 
-			    // scroll to bottom of table
-			    var objDiv = document.getElementById("viewer");
-                objDiv.scrollTop = objDiv.scrollHeight;
+	                $scope.gotoEndTable();
+                }
 	    }
 	}
+
+	$scope.onPause = function () {
+	    $scope.isPaused = true;
+	};
+
+	$scope.onResume = function () {
+	    $scope.isPaused = false;
+	    $scope.messages = $scope.messages.concat($scope.paused_messages);
+	    $scope.paused_messages.length = 0;
+
+	    $scope.gotoEndTable();
+	};
+
+	$scope.onClear = function () {
+	    $scope.messages.length = 0;
+	    $scope.paused_messages.length = 0;
+
+	    $scope.gotoEndTable();
+	};
+
+	$scope.gotoEndTable = function () {
+	    // scroll to bottom of table
+		var objDiv = document.getElementById("viewer");
+        objDiv.scrollTop = objDiv.scrollHeight;
+	};
 
 	init();
 	}]
