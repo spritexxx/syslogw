@@ -26,11 +26,11 @@ def read_arguments():
     :return:
     """
     parser = argparse.ArgumentParser(description='Syslog Collector')
-    parser.add_argument('transport', type=str, choices=['udp', 'tcp'], help='Transport protocol used.')
 
+    parser.add_argument('--transport', type=str, choices=['udp', 'tcp'], help='Transport protocol used.')
     parser.add_argument('--log', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Specify desired log level.")
     parser.add_argument('--parser', type=str, choices=available_parsers(), help="Only try to parse the syslog messages with this parser.")
-    parser.add_argument('--database', type=str, choices=['y', 'n'], help="Store logs in a database or not.", default='y')
+    parser.add_argument('--database', type=str, choices=['y', 'n'], help="Store logs in a database or not.")
     parser.add_argument('--serverip', type=str, help="specify server ip address (e.g IP of the server hosting this app)")
 
     return parser.parse_args()
@@ -116,17 +116,22 @@ def main():
 
         logging.basicConfig(level=numeric_level)
 
-    if args.database == "y":
-        # mongo db connection that will be shared between the threads
-        database = mongodb.MongoDBConnection(DEFAULT_COLLECTION)
-        if not database.connect():
-            logging.warning("Could not connect to mongod, not saving logs in DB!")
-            database = None
-        else:
-            logging.info("Connected to database.")
-    else:
-        logging.info("Not storing logs in a database.")
+    if not args.database:
         database = None
+    else:
+        if args.database == "y":
+            # mongo db connection that will be shared between the threads
+            database = mongodb.MongoDBConnection(DEFAULT_COLLECTION)
+            if not database.connect():
+                logging.warning("Could not connect to mongod, not saving logs in DB!")
+                database = None
+            else:
+                logging.info("Connected to database.")
+        else:
+            database = None
+
+    if not database:
+        logging.warn("Not storing logs in database...")
 
     if args.parser:
         parser = get_parser_by_name(args.parser)
@@ -151,14 +156,16 @@ def main():
         worker.setDaemon(True)
         worker.start()
 
-    if args.transport == "udp":
-        logging.info("Starting UPD server.")
+    # default transport is udp
+    if not args.transport:
         reactor.listenUDP(DEFAULT_PORT, servers.SyslogUdp(work_queue))
-    elif args.transport == "tcp":
-        logging.info("Starting TCP server.")
-        Exception("TCP not supported yet!")
-
-    print("Syslog Collector Server listening on port %d (%s)" % (DEFAULT_PORT, args.transport.upper()))
+    else:
+        if args.transport == "udp":
+            logging.info("Starting UPD server.")
+            reactor.listenUDP(DEFAULT_PORT, servers.SyslogUdp(work_queue))
+        elif args.transport == "tcp":
+            logging.info("Starting TCP server.")
+            Exception("TCP not supported yet!")
 
     # create a viewer
     viewer.create_viewer(reactor, DEFAULT_VIEWER_PORT, args.serverip)

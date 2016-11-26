@@ -22,7 +22,7 @@ How to use
 -----------
 1. Optional: Make sure mongodb is installed and running.
 2. Start the server:
-    python syslogw.py udp
+    python syslogw.py
         optionally specify --log=DEBUG if you want to see incoming messages on the console
 
 Note:
