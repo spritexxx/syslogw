@@ -18,6 +18,7 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
     $scope.socket = null;
     $scope.socketIsOpen = false;
     $scope.isPaused = false;
+
     $scope.messages = [];
     // this buffer will hold messages while the app is paused
     $scope.paused_messages = [];
@@ -30,7 +31,7 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 		    $scope.socket = socket
 
 		    // example if the message were a string
-		    $scope.messages.push({severity: "notice", msg: "Connected to syslogc"});
+		    $scope.messages.push({severity: "info", msg: "Connected to syslogc", status: 2});
 		    $scope.$apply();
 	    }
 
@@ -64,6 +65,17 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 			        console.log("not logging empty message");
 			        return;
 			    }
+
+			    /* color time */
+			    if (message.severity == "err" ||
+			            message.severity == "emerg" ||
+			            message.severity == "alert" ||
+			            message.severity == "crit")
+			        message.status = 0;
+			    else if (message.severity == "warning")
+			        message.status = 1;
+			    else if (message.severity == "notice")
+			        message.status = 2;
 
                 /* if we are paused we simply keep messages in a separate buffer */
                 if ($scope.isPaused) {

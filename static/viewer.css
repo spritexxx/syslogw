@@ -39,3 +39,16 @@ body {
 #controller {
   float: right;
 }
+
+.error {
+    background-color: #ff5c33;
+}
+
+.warn {
+    background-color: #ffad33;
+}
+
+.notice {
+    background-color: #ffff66;
+}
+

@@ -24,7 +24,7 @@
         </div>
     </div>
     <div id="viewer" class="container content row">
-        <table class="table">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Priority</th>
@@ -33,7 +33,7 @@
                 </tr>
             </thead>
             <tbody>
-            <tr ng-repeat='message in messages'>
+            <tr ng-repeat='message in messages' ng-class="{0: 'error', 1: 'warn', 2: 'notice'}[message.status]">
                 <td>{a message.severity a}</td>
                 <td>{a message.appname a}</td>
                 <td>{a message.msg a}</td>
