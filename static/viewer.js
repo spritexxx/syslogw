@@ -14,6 +14,34 @@ function isEmpty(str) {
     return (!str || 0 === str.length);
 }
 
+// Returns true if str matches the rule (which can contain * wildcards)
+function matchRuleShort(str, rule) {
+    return new RegExp("^" + rule.split("*").join(".*") + "$").test(str);
+}
+
+/* Filter class
+ * Implements functions to evaluate whether a filter applies to a given message.
+ * A filter consist of:
+ *      - app: specify an app expression to match.
+ *      - severity: specify on which severity this should act.
+ *      - action: specify which action to take.
+ */
+function Filter(app_expr, severity_expr, action, state) {
+    this.app_expr = app_expr;
+    this.sev_expr = severity_expr;
+    // action = highlight | hide
+    this.action = action;
+    // state = enabled | disabled
+    this.state = state;
+
+    this.evaluateApp = function(appname) {
+        return matchRuleShort(appname, this.app_expr);
+    };
+
+    this.evaluateSeverity = function(severity) {
+    };
+}
+
 app.controller('MessagesController', ['$scope', '$window', function ($scope, $window){
     $scope.socket = null;
     $scope.socketIsOpen = false;
@@ -22,6 +50,11 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
     $scope.messages = [];
     // this buffer will hold messages while the app is paused
     $scope.paused_messages = [];
+
+    $scope.filters = [];
+    // put a placeholder filter
+    var filter = new Filter("myapp", ">= warning", "hide", "disabled");
+    $scope.filters.push(filter);
 
     var init = function() {
 	    socket = new WebSocket("ws://"+ server_ip +":9494");
@@ -107,6 +140,15 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 	    $scope.paused_messages.length = 0;
 
 	    $scope.gotoEndTable();
+	};
+
+	$scope.addFilter = function () {
+	    // the last filter of the list is simply a disabled example filter
+	    $scope.filters.push(new Filter("appname", ">= warning", "hide", "disabled"));
+	};
+
+	$scope.removeFilter = function (index) {
+	    $scope.filters.splice(index, 1);
 	};
 
 	$scope.gotoEndTable = function () {

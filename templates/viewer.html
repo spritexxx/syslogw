@@ -18,9 +18,31 @@
             <h3>Syslogw <small>Web Viewer</small></h3>
         </div>
         <div id="controller">
+            <button data-toggle="collapse" data-target="#filters" class="btn btn-primary btn-warning">Filters</button>
+
             <button type="button" class="btn btn-primary btn-warning" ng-click="onClear()">Clear</button>
             <button type="button" class="btn btn-primary btn-warning" ng-click="onPause()" ng-hide="isPaused">Pause</button>
             <button type="button" class="btn btn-primary btn-success" ng-click="onResume()" ng-show="isPaused">Resume</button>
+        </div>
+        <div id="filters" class="collapse">
+            <form class="form-inline filter" ng-repeat="filter in filters">
+                <input type="text" class="form-control" id="app_expr" placeholder="myapp*" ng-model="filter.app_expr">
+                <input type="text" class="form-control" id="severity_expr" placeholder=">= warning" ng-model="filter.sev_expr">
+                <select class="form-control" id="action" ng-model="filter.action">
+                    <option>highlight</option>
+                    <option>hide</option>
+                </select>
+                <select class="form-control" id="active" ng-model="filter.state">
+                    <option>enabled</option>
+                    <option>disabled</option>
+                </select>
+                <button type="button" class="btn btn-danger" ng-hide="$last" ng-click="removeFilter($index)">
+                    <span class="glyphicon glyphicon-remove"></span>
+                </button>
+                <button type="button" class="btn btn-success" ng-show="$last" ng-click="addFilter()">
+                    <span class="glyphicon glyphicon-plus"></span>
+                </button>
+            </form>
         </div>
     </div>
     <div id="viewer" class="container content row">

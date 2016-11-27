@@ -40,6 +40,20 @@ body {
   float: right;
 }
 
+#filters {
+    float: left;
+    clear: both;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.filter {
+    position: relative;
+    left: 2%;               /* add some spacing from the left */
+    width: 95%;
+}
+
 .error {
     background-color: #ff5c33;
 }
@@ -51,4 +65,3 @@ body {
 .notice {
     background-color: #ffff66;
 }
-
