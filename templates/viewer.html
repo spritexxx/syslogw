@@ -55,7 +55,7 @@
                 </tr>
             </thead>
             <tbody>
-            <tr ng-repeat='message in messages' ng-class="{0: 'error', 1: 'warn', 2: 'notice'}[message.status]">
+            <tr ng-repeat='message in messages' ng-class="{0: 'error', 1: 'warn', 2: 'notice', 3: 'highlight' }[message.status]">
                 <td>{a message.severity a}</td>
                 <td>{a message.appname a}</td>
                 <td>{a message.msg a}</td>
