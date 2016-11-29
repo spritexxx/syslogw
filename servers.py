@@ -29,7 +29,7 @@ class SyslogViewerProtocol(WebSocketServerProtocol):
     to the viewer client.
     """
     def onConnect(self, request):
-        logging.debug("Client connecting {0}".format(request.peer))
+        logging.info("Client connecting {0}".format(request.peer))
 
     def onOpen(self):
         # register yourself in so that you can get updates
@@ -37,15 +37,16 @@ class SyslogViewerProtocol(WebSocketServerProtocol):
 
     def onMessage(self, payload, isBinary):
         if isBinary:
-            logging.debug("RX (binary)")
+            logging.info("RX (binary)")
         else:
-            logging.debug("RX - {0}".format(payload.decode('utf8')))
+            logging.info("RX: {0}".format(payload.decode('utf8')))
 
     def onClose(self, wasClean, code, reason):
         # it can be that we are somehow not in anymore
         if self in self.factory.clients:
             self.factory.clients.remove(self)
-        logging.debug("Client connection closed, reason: {0}".format(reason))
+
+        logging.info("Client {0} connection closed, reason: {1}".format(str(self.http_request_host), reason))
 
     def newMessage(self, message):
         try:

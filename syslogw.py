@@ -103,8 +103,8 @@ def handle_new_messages(work_queue, factory, database=None, parser=None):
             # create copy as database tends to modify the dict
             database.store_message_data(dict(json_message))
         else:
-            # no database, log to console
-            print(raw_data.message)
+            # print to debug logs
+            logging.debug(raw_data.message)
 
         work_queue.task_done()
 

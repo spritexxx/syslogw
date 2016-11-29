@@ -20,7 +20,7 @@ def log_request():
     """
     Function that can be used to log incoming requests.
     """
-    app.logger.debug(request.path)
+    app.logger.info(request.path)
 
 
 @app.route('/')
