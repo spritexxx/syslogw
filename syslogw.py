@@ -15,7 +15,7 @@ __author__ = 'Simon Esprit'
 
 # Defaults
 DEFAULT_PORT = 5140
-DEFAULT_VIEWER_PORT = 8080
+DEFAULT_VIEWER_PORT = 8181
 DEFAULT_MAX_THREADS = 2
 DEFAULT_COLLECTION = "messages"
 
@@ -32,6 +32,9 @@ def read_arguments():
     parser.add_argument('--parser', type=str, choices=available_parsers(), help="Only try to parse the syslog messages with this parser.")
     parser.add_argument('--database', type=str, choices=['y', 'n'], help="Store logs in a database or not.")
     parser.add_argument('--serverip', type=str, help="specify server ip address (e.g IP of the server hosting this app)")
+
+    # ports below 1024 need sudo privileges so we don't allow them for the web viewer
+    parser.add_argument('--viewer_port', type=int, choices=xrange(1025, 65535), help="specify port to use for the viewer")
 
     return parser.parse_args()
 
@@ -168,7 +171,8 @@ def main():
             Exception("TCP not supported yet!")
 
     # create a viewer
-    viewer.create_viewer(reactor, DEFAULT_VIEWER_PORT, args.serverip)
+    viewer_port = args.viewer_port if args.viewer_port else DEFAULT_VIEWER_PORT
+    viewer.create_viewer(reactor, viewer_port, args.serverip)
 
     reactor.run()
     print("Syslog Collector Server stopped.")

@@ -47,7 +47,7 @@ This line forwards all messages to a server for example:
 Web app
 --------
 To view the web app, fire up a browser and go to:
-localhost:8080
+localhost:8181
 
 Extended options
 ----------------

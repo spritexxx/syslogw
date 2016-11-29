@@ -40,11 +40,14 @@ def websocket_test():
 def create_viewer(reactor, port, server_ip=None):
     # figure out our IP in case it is not specified
     if not server_ip:
-        serverip = socket.gethostbyname(socket.gethostname())
+        hostname = socket.gethostname()
+        serverip = socket.gethostbyname(hostname)
+        if serverip == "127.0.0.1":
+            serverip = hostname + ".local"
     else:
         serverip = server_ip
 
-    logging.debug("using server ip: " + serverip)
+    print("viewer listening on {0}:{1}".format(serverip, port))
 
     app.config['SERVER_IP'] = serverip
 
