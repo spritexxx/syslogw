@@ -35,6 +35,7 @@ def read_arguments():
 
     # ports below 1024 need sudo privileges so we don't allow them for the web viewer
     parser.add_argument('--viewer_port', type=int, choices=xrange(1025, 65535), help="specify port to use for the viewer")
+    parser.add_argument('--server_port', type=int, choices=xrange(1025, 65535), help="specify port to use for the server")
 
     return parser.parse_args()
 
@@ -159,13 +160,14 @@ def main():
         worker.setDaemon(True)
         worker.start()
 
+    server_port = args.server_port if args.server_port else DEFAULT_PORT
     # default transport is udp
     if not args.transport:
-        reactor.listenUDP(DEFAULT_PORT, servers.SyslogUdp(work_queue))
+        reactor.listenUDP(server_port, servers.SyslogUdp(work_queue))
     else:
         if args.transport == "udp":
             logging.info("Starting UPD server.")
-            reactor.listenUDP(DEFAULT_PORT, servers.SyslogUdp(work_queue))
+            reactor.listenUDP(server_port, servers.SyslogUdp(work_queue))
         elif args.transport == "tcp":
             logging.info("Starting TCP server.")
             Exception("TCP not supported yet!")
