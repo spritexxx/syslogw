@@ -36,10 +36,15 @@ class SyslogViewerProtocol(WebSocketServerProtocol):
         self.factory.clients.append(self)
 
     def onMessage(self, payload, isBinary):
+        """
+        Clients can send messages to the server in order to verify their connection.
+        Upon receipt the server will simply echo back whatever it received.
+        """
         if isBinary:
             logging.info("RX (binary)")
         else:
             logging.info("RX: {0}".format(payload.decode('utf8')))
+            self.sendMessage(payload)
 
     def onClose(self, wasClean, code, reason):
         # it can be that we are somehow not in anymore

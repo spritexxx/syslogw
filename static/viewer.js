@@ -158,9 +158,98 @@ function Filter(app_expr, severity_expr, action, state) {
     };
 }
 
+/* Class that acts as a wrapper around the WebSocket class.
+   It's goal is to create a robust connection with the server.
+   This means that it will test the connection & reconnect if needed.
+ */
+function ViewerWebSocket(onReceiveHandler) {
+    /* Configuration values */
+    this.CHECK_MS = 5000;   // check connection every 5000 ms
+    this.IDLE_S = 5;        // test connection every 5s when idle
+
+    this.onReceiveHandler = onReceiveHandler;
+
+    /* Function */
+    this.createWebSocket = function(messageHandler) {
+        socket = new WebSocket("ws://"+ server_ip +":9494");
+        socket.messageHandler = messageHandler;
+        socket.isOpen = false;
+
+        // last time (in seconds since epoch) since we received something from server
+        socket.lastTx = 0;
+
+        /* Implementation of WebSocket functions */
+	    socket.onopen = function() {
+		    this.isOpen = true;
+		    this.lastTx = new Date().getTime() / 1000;
+		    this.messageHandler(JSON.stringify({severity: "notice", appname: "viewer", msg: "Connected to syslogc"}));
+		    console.log("websocket opened");
+	    };
+
+	    socket.onmessage = function(e) {
+		    this.lastTx = new Date().getTime() / 1000;
+		    if (typeof e.data == "string") {
+			      this.messageHandler(e.data)
+		    }
+		    else {
+			    var arr = new Uint8Array(e.data);
+			    var hex = '';
+			    for (var i = 0; i < arr.length; i++) {
+				    hex += ('00' + arr[i].toString(16)).substr(-2);
+			    }
+			    console.log("Binary message received: " + hex);
+		    }
+	    };
+
+	    socket.onclose = function(e) {
+		    this.isOpen = false;
+		    this.messageHandler(JSON.stringify({severity: "err", appname: "viewer", msg: "Disconnected from syslogc"}));
+		    console.log("websocket closed");
+	    };
+
+	    return socket;
+    };
+
+    /* Test server connection by trying to send some data to the server.
+       The server is configured so that it will reply whatever it receives on the WS.
+     */
+	this.testConnection = function() {
+	    console.log("checking server connection");
+	    this.socket.send((new Date().getTime()/1000).toString())
+	};
+
+	this.checkConnection = function(_this) {
+	    if (!_this.socket.isOpen) {
+	        console.log("socket is not open");
+	        // create new one
+	        _this.onReceiveHandler(JSON.stringify({severity: "debug", appname: "viewer", msg: "Trying to (re)connect to syslogc"}));
+	        _this.socket = _this.createWebSocket(_this.onReceiveHandler);
+	    }
+	    else {
+	        console.log("socket is still open");
+	        currentTime = new Date().getTime() / 1000;
+	        delta = currentTime - _this.socket.lastTx;
+
+            /* test connection in case we haven't heard from server in a while */
+	        if (delta >= _this.IDLE_S) {
+	            console.log("no message received from server in a while...");
+	            _this.testConnection();
+	        }
+	    }
+
+	    setTimeout(_this.checkConnection, _this.CHECK_MS, _this);
+	};
+
+    this.init = function() {
+	    this.socket = this.createWebSocket(this.onReceiveHandler);
+	    // check socket in 1 second
+	    setTimeout(this.checkConnection, this.CHECK_MS, this);
+    };
+
+    this.init();
+}
+
 app.controller('MessagesController', ['$scope', '$window', function ($scope, $window){
-    $scope.socket = null;
-    $scope.socketIsOpen = false;
     $scope.isPaused = false;
 
     $scope.messages = [];
@@ -259,45 +348,7 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
         objDiv.scrollTop = objDiv.scrollHeight;
 	};
 
-    /* init function which takes care of the websocket */
-    var create_websocket = function() {
-	    socket = new WebSocket("ws://"+ server_ip +":9494");
+    $scope.viewer_ws = new ViewerWebSocket($scope.handleMessage);
 
-	    socket.onopen = function() {
-		    $scope.socketIsOpen = true;
-		    $scope.socket = socket
-
-		    // example if the message were a string
-		    $scope.messages.push({severity: "info", msg: "Connected to syslogc", status: 2});
-		    $scope.$apply();
-	    }
-
-	    socket.onmessage = function(e) {
-		    if (typeof e.data == "string") {
-			    $scope.handleMessage(e.data)
-		    } else {
-			    var arr = new Uint8Array(e.data);
-			    var hex = '';
-			    for (var i = 0; i < arr.length; i++) {
-				    hex += ('00' + arr[i].toString(16)).substr(-2);
-			    }
-			    console.log("Binary message received: " + hex);
-		    }
-	    }
-
-	    socket.onclose = function(e) {
-		    $scope.socket = null;
-		    $scope.socketIsOpen = false;
-
-		    $scope.messages.push({severity: "err", msg: "Disconnected from syslogc"});
-		    $scope.$apply();
-	    }
-
-	    $scope.socket = socket
-	};
-
-	create_websocket();
 	}]
 );
-
-
