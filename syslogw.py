@@ -34,8 +34,8 @@ def read_arguments():
     parser.add_argument('--serverip', type=str, help="specify server ip address (e.g IP of the server hosting this app)")
 
     # ports below 1024 need sudo privileges so we don't allow them for the web viewer
-    parser.add_argument('--viewer_port', type=int, choices=xrange(1025, 65535), help="specify port to use for the viewer")
-    parser.add_argument('--server_port', type=int, choices=xrange(1025, 65535), help="specify port to use for the server")
+    parser.add_argument('--viewer_port', type=int, help="specify port to use for the viewer")
+    parser.add_argument('--server_port', type=int, help="specify port to use for the server")
 
     return parser.parse_args()
 
