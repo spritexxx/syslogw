@@ -44,3 +44,4 @@ fabric.properties
 
 # dont want to have my dictionaries in git
 .idea/dictionaries
+build/

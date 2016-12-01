@@ -179,5 +179,6 @@ def main():
     reactor.run()
     print("Syslog Collector Server stopped.")
 
-if __name__ == "__main__":
+# __name__ is syslogw__main__ after building with cx_Freeze
+if __name__ == "__main__" or __name__ == "syslogw__main__":
     main()
