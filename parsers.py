@@ -153,7 +153,7 @@ class BusyboxParser(NonRFC5424Parser):
 
         pri = Combine(Suppress(Literal("<")) + Word(nums, min=1, max=3) + Suppress(Literal(">"))).setParseAction(NonRFC5424Parser._toInt)
 
-        rfc3164_date = Word(alphas, min=3, max=3) + SP + Word(nums, min=2, max=2)
+        rfc3164_date = Word(alphas, min=3, max=3) + SP + Word(nums, min=1, max=2)
         rfc3164_time = Combine(Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2) + colon + Word(nums, min=2, max=2))
 
         # not clear what this represents...
