@@ -74,6 +74,7 @@ function Filter(app_expr, severity_expr, action, state) {
         return matchRuleShort(appname, this.app_expr);
     };
 
+    // TODO refactor this so that apps can reuse this logic!
     this.evaluateSeverity = function (severity) {
         rule_int = this.severityToInt(this.sev_expr.replace(/\W/g, ''));
         sev_int = this.severityToInt(severity);
@@ -155,6 +156,17 @@ function Filter(app_expr, severity_expr, action, state) {
             message.status = 3;
 
         return message;
+    };
+}
+
+function App(app_expr, state) {
+    this.app_expr = app_expr;
+    // state = enabled | disabled
+    this.state = state;
+
+    // TODO at some point refactor this as this is the same for the filter!
+    this.evaluateApp = function (appname) {
+        return matchRuleShort(appname, this.app_expr);
     };
 }
 
@@ -256,16 +268,51 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
     // this buffer will hold messages while the app is paused
     $scope.paused_messages = [];
 
+    $scope.apps = [];
+    // put a placeholder app
+    $scope.apps.push(new App("my_app", "disabled"));
+
     $scope.filters = [];
     // put a placeholder filter
     var filter = new Filter("myapp", ">= warning", "hide", "disabled");
     $scope.filters.push(filter);
+
+    $scope.applyApps = function (message) {
+        if (!message)
+            return null;
+
+        var hasAppEnabled = false;
+
+        for (var index = 0; index < $scope.apps.length; index++) {
+            var app = $scope.apps[index];
+            if (app.state == "enabled") {
+                hasAppEnabled = true;
+                if (app.evaluateApp(message.appname)) {
+                    return message;
+                }
+            }
+            else
+                continue;
+        }
+
+        // if we got here and an enabled app was found, it means none of them match the message so we discard it
+        if(hasAppEnabled) {
+            console.log("discarded message with non-matching app");
+            return null;
+        }
+        else {
+            return message;
+        }
+    };
 
     /*
      * Function to evaluate all user-specified filters on a message.
      * These filters will modify the message and return it.
      */
     $scope.applyFilters = function (message) {
+        if (!message)
+            return null;
+
         for (var index = 0; index < $scope.filters.length; index++) {
             message = $scope.filters[index].handleMessage(message);
             // if filter removed the message, stop immediately
@@ -284,7 +331,10 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 			        return;
 			    }
 
-			    // first evaluate filters, if this becomes too intense for the browser, offload it to server
+			    // first check if only specific apps should be shown
+			    message = $scope.applyApps(message);
+
+			    // evaluate filters, if this becomes too intense for the browser, offload it to server
 			    message = $scope.applyFilters(message);
 			    if (!message) {
 			        console.log("filtered out message");
@@ -340,6 +390,14 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 
 	$scope.removeFilter = function (index) {
 	    $scope.filters.splice(index, 1);
+	};
+
+	$scope.addApp = function () {
+	    $scope.apps.push(new App("my_app", "disabled"));
+	};
+
+	$scope.removeApp = function (index) {
+	    $scope.apps.splice(index, 1);
 	};
 
 	$scope.gotoEndTable = function () {

@@ -19,9 +19,26 @@
         </div>
         <div id="controller">
             <button type="button" class="btn btn-primary btn-warning" ng-click="onClear()">Clear</button>
+            <button data-toggle="collapse" data-target="#apps" class="btn btn-primary btn-warning">Apps</button>
             <button data-toggle="collapse" data-target="#filters" class="btn btn-primary btn-warning">Filters</button>
             <button type="button" class="btn btn-primary btn-warning" ng-click="onPause()" ng-hide="isPaused">Pause</button>
             <button type="button" class="btn btn-primary btn-success" ng-click="onResume()" ng-show="isPaused">Resume</button>
+        </div>
+        <div id="apps" class="collapse">
+            <form class="form-inline filter" ng-repeat="app in apps">
+                <input type="text" class="form-control" placeholder="*" ng-model="app.app_expr">
+                <select class="form-control" ng-model="app.state">
+                    <option>enabled</option>
+                    <option>disabled</option>
+                </select>
+                <button type="button" class="btn btn-danger" ng-hide="$last" ng-click="removeApp($index)">
+                    <span class="glyphicon glyphicon-remove"></span>
+                </button>
+                <button type="button" class="btn btn-success" ng-show="$last" ng-click="addApp()">
+                    <span class="glyphicon glyphicon-plus"></span>
+                </button>
+            </form>
+
         </div>
         <div id="filters" class="collapse">
             <form class="form-inline filter" ng-repeat="filter in filters">
