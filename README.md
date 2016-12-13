@@ -49,6 +49,15 @@ Web app
 To view the web app, fire up a browser and go to:
 localhost:8181
 
+
+Syslog-ng
+----------
+In case you want to forward logs to the server from syslog-ng running on a client,
+you can copy the example syslog-ng configuration file found in conf/syslog-ng to
+/etc/syslog-ng/conf.d/syslogw.conf
+
+Note that customization of the ip address and port might be necessary!
+
 Extended options
 ----------------
 This will list all available options:
