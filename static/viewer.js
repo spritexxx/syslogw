@@ -176,14 +176,18 @@ function App(app_expr, state) {
  */
 function ViewerWebSocket(onReceiveHandler) {
     /* Configuration values */
-    this.CHECK_MS = 5000;   // check connection every 5000 ms
-    this.IDLE_S = 5;        // test connection every 5s when idle
+    this.CHECK_MS = 5000;      // check connection every 5000 ms
+    this.IDLE_S = 5;           // test connection every 5s when idle
 
-    this.onReceiveHandler = onReceiveHandler;
+    // refresh count is a temp. fix for the issue where no new logs can be sent from the server
+    // although the connection is still valid. TODO: does this fix work?
+    this.REFRESH_COUNT = 10;
 
     /* Function */
-    this.createWebSocket = function(messageHandler) {
+    this.createWebSocket = function(messageHandler, quiet) {
         socket = new WebSocket("ws://"+ server_ip +":9494");
+        socket.quiet = quiet;
+        console.log("create quiet: " + quiet);
         socket.messageHandler = messageHandler;
         socket.isOpen = false;
 
@@ -194,7 +198,14 @@ function ViewerWebSocket(onReceiveHandler) {
 	    socket.onopen = function() {
 		    this.isOpen = true;
 		    this.lastTx = new Date().getTime() / 1000;
-		    this.messageHandler(JSON.stringify({severity: "notice", appname: "viewer", msg: "Connected to syslogc"}));
+		    if (!this.quiet) {
+                this.messageHandler(JSON.stringify({
+                    severity: "notice",
+                    appname: "viewer",
+                    msg: "Connected to syslogc"
+                }));
+            }
+
 		    console.log("websocket opened");
 	    };
 
@@ -215,7 +226,14 @@ function ViewerWebSocket(onReceiveHandler) {
 
 	    socket.onclose = function(e) {
 		    this.isOpen = false;
-		    this.messageHandler(JSON.stringify({severity: "err", appname: "viewer", msg: "Disconnected from syslogc"}));
+		    console.log(this.quiet)
+		    if (!this.quiet) {
+                this.messageHandler(JSON.stringify({
+                    severity: "err",
+                    appname: "viewer",
+                    msg: "Disconnected from syslogc"
+                }));
+            }
 		    console.log("websocket closed");
 	    };
 
@@ -232,13 +250,27 @@ function ViewerWebSocket(onReceiveHandler) {
 
 	this.checkConnection = function(_this) {
 	    if (!_this.socket.isOpen) {
-	        console.log("socket is not open");
+	        console.log("socket is not open, reopening");
 	        // create new one
 	        _this.onReceiveHandler(JSON.stringify({severity: "debug", appname: "viewer", msg: "Trying to (re)connect to syslogc"}));
-	        _this.socket = _this.createWebSocket(_this.onReceiveHandler);
+
+            _this.socket.close();
+            _this.init(_this, _this.onReceiveHandler, false);
+            return;
 	    }
 	    else {
 	        console.log("socket is still open");
+
+	        // TODO this needs to be properly fixed on the server at some point!
+	        if(_this.refreshes > _this.REFRESH_COUNT) {
+	            console.log("refreshing socket because REFRESH_COUNT reached");
+
+                _this.socket.quiet = true;
+                _this.socket.close();
+                _this.init(_this, _this.onReceiveHandler, true);
+	            return;
+            }
+
 	        currentTime = new Date().getTime() / 1000;
 	        delta = currentTime - _this.socket.lastTx;
 
@@ -246,19 +278,25 @@ function ViewerWebSocket(onReceiveHandler) {
 	        if (delta >= _this.IDLE_S) {
 	            console.log("no message received from server in a while...");
 	            _this.testConnection();
+	            _this.refreshes++;
 	        }
 	    }
 
 	    setTimeout(_this.checkConnection, _this.CHECK_MS, _this);
 	};
 
-    this.init = function() {
-	    this.socket = this.createWebSocket(this.onReceiveHandler);
+    this.init = function(_this, onReceiveHandler, quiet) {
+        // this function sets up the websocket
+        _this.refreshes = 0;
+        // TODO probably not needed
+        _this.onReceiveHandler = onReceiveHandler;
+
+	    _this.socket = _this.createWebSocket(onReceiveHandler, quiet);
 	    // check socket in 1 second
-	    setTimeout(this.checkConnection, this.CHECK_MS, this);
+	    setTimeout(_this.checkConnection, _this.CHECK_MS, _this);
     };
 
-    this.init();
+    this.init(this, onReceiveHandler, false);
 }
 
 app.controller('MessagesController', ['$scope', '$window', function ($scope, $window){
@@ -331,6 +369,9 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 			        return;
 			    }
 
+			    // reset socket refresh counter
+                $scope.viewer_ws.refreshes = 0;
+
 			    // first check if only specific apps should be shown
 			    message = $scope.applyApps(message);
 
@@ -362,7 +403,7 @@ app.controller('MessagesController', ['$scope', '$window', function ($scope, $wi
 
 	                $scope.gotoEndTable();
                 }
-	}
+	};
 
 	$scope.onPause = function () {
 	    $scope.isPaused = true;
